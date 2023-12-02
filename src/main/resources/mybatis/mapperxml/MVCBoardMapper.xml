@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mybatis.mapper.MVCBoardMapper">
+    <select id="selectCount" parameterType="map" resultType="int">
+        SELECT count(*)
+        FROM mvcboard
+        <if test="searchWord != null and !searchWord.equals('')"> <!--if태그 searchWord가 null이아니고 비어있지 않은 경우에만 이 조건을 만족-->
+            WHERE
+            <choose>
+                <when test="searchField == 'title'">  <!--searchField가 'title'인 경우에 대한 조건-->
+                    title like concat('%', #{searchWord}, '%')  <!--concat : %searchWord%-->
+                </when>
+                <otherwise>  <!--이전 조건이 아닌 경우-->
+                    content like concat('%', #{searchWord}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!--페이징 기능 지원-->
+    <select id="selectListPage" parameterType="map" resultType="model2.mvcboard.dto.MVCBoardDTO">
+        SELECT * FROM
+        ( SELECT @ROWNUM := @ROWNUM + 1 AS ROWNUM, b.*
+        FROM  mvcboard b,(SELECT @ROWNUM := 0 ) TMP
+
+        <if test="searchWord != null and !searchWord.equals('')">
+            <choose>
+                <when test="searchField == 'title'">
+                    WHERE title LIKE CONCAT('%', #{searchWord}, '%')
+                </when>
+                <otherwise>
+                    WHERE content LIKE CONCAT('%', #{searchWord}, '%')
+                </otherwise>
+            </choose>
+        </if>
+
+        ORDER BY idx DESC ) T
+        WHERE ROWNUM BETWEEN #{ start } AND #{ end } ;
+    </select>
+
+    <insert id="insertWrite" parameterType="model2.mvcboard.dto.MVCBoardDTO">
+        INSERT
+        INTO mvcboard(name, title, content, ofile, sfile, pass)
+        VALUES(#{name}, #{title}, #{content}, #{ofile}, #{sfile}, #{pass})
+    </insert>
+
+    <select id="selectView" parameterType="String"  resultType="model2.mvcboard.dto.MVCBoardDTO">
+        select *
+        from mvcboard
+        where idx = #{idx}
+    </select>
+
+    <update id="updateVisitCount" parameterType="String">
+        UPDATE mvcboard
+        SET visitcount = visitcount + 1
+        where idx = #{idx}
+    </update>
+
+    <update id="downCountPlus" parameterType="String">
+        UPDATE mvcboard
+        SET downcount = downcount + 1
+        where idx = #{idx}
+    </update>
+
+    <select id="confirmPassword" parameterType="map">
+        select count(idx)
+        from mvcboard
+        where pass = #{pass} and idx = #{idx}
+    </select>
+
+    <delete id="deletePost">
+        delete
+        from mvcboard
+        where idx = #{idx}
+    </delete>
+
+    <update id="updatePost" parameterType="model2.mvcboard.dto.MVCBoardDTO">
+        update mvcboard
+        set title = #{title}, name = #{name},
+        content = #{content}, ofile = #{ofile}, sfile = #{sfile}
+        where idx = #{idx} and pass = #{pass}
+    </update>
+
+</mapper>
